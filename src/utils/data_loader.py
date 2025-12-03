@@ -33,64 +33,80 @@ class SpectralDataset(Dataset):
     def __getitem__(self, idx):
         return self.X[idx], self.y[idx]
 
-
-def load_processed(data_path, test_size=0.2, val_size=0.1, random_state=42):
+def load_processed(data_path):
     """
-    Load preprocessed data and split into train/val/test sets.
-    
-    Parameters:
-    -----------
-    data_path : str
-        Path to preprocessed CSV file
-    test_size : float
-        Proportion of data for testing
-    val_size : float
-        Proportion of training data for validation
-    random_state : int
-        Random seed for reproducibility
-    
-    Returns:
-    --------
-    dict
-        Dictionary containing X_train, X_val, X_test, y_train, y_val, y_test
+    Load preprocessed data and return full X, y arrays.
     """
-    # Load data
     df = pd.read_csv(data_path)
-    
+
     # Extract features and labels
     X = df.iloc[:, :-1].values
     y = df.iloc[:, -1].values
-    
+
     # Encode labels as integers if necessary
     unique_labels = np.unique(y)
     label_mapping = {label: idx for idx, label in enumerate(unique_labels)}
     y = np.array([label_mapping[label] for label in y])
+
+    return X, y
+
+# def load_processed(data_path, test_size=0.2, val_size=0.1, random_state=42):
+#     """
+#     Load preprocessed data and split into train/val/test sets.
     
-    # Split into train and test
-       # Check if stratify is possible (all classes need at least 2 samples)
-    min_class_count = np.bincount(y).min() if len(np.unique(y)) > 0 else 0
-    stratify_y = y if min_class_count >= 2 else None
-    X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=test_size, random_state=random_state, stratify=y
-    )
+#     Parameters:
+#     -----------
+#     data_path : str
+#         Path to preprocessed CSV file
+#     test_size : float
+#         Proportion of data for testing
+#     val_size : float
+#         Proportion of training data for validation
+#     random_state : int
+#         Random seed for reproducibility
     
-    # Split train into train and val
-        # Check stratify for validation split too
-    min_val_class_count = np.bincount(y_train).min() if len(np.unique(y_train)) > 0 else 0
-    stratify_y_train = y_train if min_val_class_count >= 2 else None
-    X_train, X_val, y_train, y_val = train_test_split(
-        X_train, y_train, test_size=val_size, random_state=random_state, stratify=y_train
-    )
+#     Returns:
+#     --------
+#     dict
+#         Dictionary containing X_train, X_val, X_test, y_train, y_val, y_test
+#     """
+#     # Load data
+#     df = pd.read_csv(data_path)
     
-    return {
-        'X_train': X_train,
-        'X_val': X_val,
-        'X_test': X_test,
-        'y_train': y_train,
-        'y_val': y_val,
-        'y_test': y_test,
-        'n_classes': len(unique_labels)
-    }
+#     # Extract features and labels
+#     X = df.iloc[:, :-1].values
+#     y = df.iloc[:, -1].values
+    
+#     # Encode labels as integers if necessary
+#     unique_labels = np.unique(y)
+#     label_mapping = {label: idx for idx, label in enumerate(unique_labels)}
+#     y = np.array([label_mapping[label] for label in y])
+    
+#     # Split into train and test
+#        # Check if stratify is possible (all classes need at least 2 samples)
+#     min_class_count = np.bincount(y).min() if len(np.unique(y)) > 0 else 0
+#     stratify_y = y if min_class_count >= 2 else None
+#     X_train, X_test, y_train, y_test = train_test_split(
+#         X, y, test_size=test_size, random_state=random_state, stratify=y
+#     )
+    
+#     # Split train into train and val
+#         # Check stratify for validation split too
+#     min_val_class_count = np.bincount(y_train).min() if len(np.unique(y_train)) > 0 else 0
+#     stratify_y_train = y_train if min_val_class_count >= 2 else None
+#     X_train, X_val, y_train, y_val = train_test_split(
+#         X_train, y_train, test_size=val_size, random_state=random_state, stratify=y_train
+#     )
+    
+#     return {
+#         'X_train': X_train,
+#         'X_val': X_val,
+#         'X_test': X_test,
+#         'y_train': y_train,
+#         'y_val': y_val,
+#         'y_test': y_test,
+#         'n_classes': len(unique_labels)
+#     }
 
 
 def create_dataloaders(X, y, batch_size=16, train_ratio=0.8, val_ratio=0.1, test_ratio=0.1, num_workers=0):
@@ -148,12 +164,7 @@ def create_dataloaders(X, y, batch_size=16, train_ratio=0.8, val_ratio=0.1, test
         test_dataset, batch_size=batch_size, shuffle=False, num_workers=num_workers
     )
     
-    return {
-        'train_loader': train_loader,
-        'val_loader': val_loader,
-        'test_loader': test_loader,
-      #  'n_classes': data_dict['n_classes']
-    }
+    return train_loader, val_loader, test_loader
 
 
 def get_device():
@@ -212,10 +223,18 @@ def load_all_datasets(processed_data_dir, batch_size=16):
                 continue
             
             # Load data
-            data_dict = load_processed(data_file)
-            loaders = create_dataloaders(data_dict, batch_size=batch_size)
-            
-            all_data[dataset][technique] = loaders
+            # Load full data
+            X, y = load_processed(data_file)
+            train_loader, val_loader, test_loader = create_dataloaders(
+                X, y, batch_size=batch_size
+            )
+
+            all_data[dataset][technique] = {
+                'train_loader': train_loader,
+                'val_loader': val_loader,
+                'test_loader': test_loader,
+            }
+
             print(f"✓ Loaded {dataset} with {technique} preprocessing")
     
     return all_data
