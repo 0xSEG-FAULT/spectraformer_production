@@ -17,7 +17,7 @@ from pathlib import Path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 from src.preprocessing.preprocessor import Preprocessor
-
+from src.utils.data_loader import load_processed
 
 def main(args):
     """
