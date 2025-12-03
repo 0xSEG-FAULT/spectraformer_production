@@ -67,11 +67,17 @@ def load_processed(data_path, test_size=0.2, val_size=0.1, random_state=42):
     y = np.array([label_mapping[label] for label in y])
     
     # Split into train and test
+       # Check if stratify is possible (all classes need at least 2 samples)
+    min_class_count = np.bincount(y).min() if len(np.unique(y)) > 0 else 0
+    stratify_y = y if min_class_count >= 2 else None
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=test_size, random_state=random_state, stratify=y
     )
     
     # Split train into train and val
+        # Check stratify for validation split too
+    min_val_class_count = np.bincount(y_train).min() if len(np.unique(y_train)) > 0 else 0
+    stratify_y_train = y_train if min_val_class_count >= 2 else None
     X_train, X_val, y_train, y_val = train_test_split(
         X_train, y_train, test_size=val_size, random_state=random_state, stratify=y_train
     )
@@ -87,28 +93,49 @@ def load_processed(data_path, test_size=0.2, val_size=0.1, random_state=42):
     }
 
 
-def create_dataloaders(data_dict, batch_size=16, num_workers=0):
+def create_dataloaders(X, y, batch_size=16, train_ratio=0.8, val_ratio=0.1, test_ratio=0.1, num_workers=0):
     """
-    Create PyTorch DataLoaders from train/val/test splits.
+    Create PyTorch DataLoaders from X, y arrays.
     
     Parameters:
     -----------
-    data_dict : dict
-        Dictionary from load_processed()
+    X : np.ndarray
+        Feature array
+    y : np.ndarray
+        Label array
     batch_size : int
         Batch size for training
+    train_ratio, val_ratio, test_ratio : float
+        Data split ratios
     num_workers : int
         Number of workers for data loading
     
     Returns:
     --------
-    dict
-        Dictionary containing train_loader, val_loader, test_loader
+    tuple
+        (train_loader, val_loader, test_loader)
     """
+    # First split: train vs test
+    min_class_count = np.bincount(y).min() if len(np.unique(y)) > 0 else 0
+    stratify_y = y if min_class_count >= 2 else None
+    
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=test_ratio, random_state=42, stratify=stratify_y
+    )
+    
+    # Second split: train vs val
+    min_val_class_count = np.bincount(y_train).min() if len(np.unique(y_train)) > 0 else 0
+    stratify_y_train = y_train if min_val_class_count >= 2 else None
+    
+    val_size = val_ratio / (1 - test_ratio)  # Adjust val_size proportion
+    X_train, X_val, y_train, y_val = train_test_split(
+        X_train, y_train, test_size=val_size, random_state=42, stratify=stratify_y_train
+    )
+    
     # Create datasets
-    train_dataset = SpectralDataset(data_dict['X_train'], data_dict['y_train'])
-    val_dataset = SpectralDataset(data_dict['X_val'], data_dict['y_val'])
-    test_dataset = SpectralDataset(data_dict['X_test'], data_dict['y_test'])
+    train_dataset = SpectralDataset(X_train, y_train)
+    val_dataset = SpectralDataset(X_val, y_val)
+    test_dataset = SpectralDataset(X_test, y_test)
     
     # Create dataloaders
     train_loader = DataLoader(
@@ -125,7 +152,7 @@ def create_dataloaders(data_dict, batch_size=16, num_workers=0):
         'train_loader': train_loader,
         'val_loader': val_loader,
         'test_loader': test_loader,
-        'n_classes': data_dict['n_classes']
+      #  'n_classes': data_dict['n_classes']
     }
 
 
