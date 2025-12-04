@@ -123,7 +123,7 @@ def tune_hyperparameters(
                         f"\n[{trial}/{total_combinations}] Testing: "
                         f"lr={lr}, bs={batch_size}, do={dropout}, hid={hidden_dim}"
                     )
-
+                    print("  Starting trial with params:", lr, batch_size, dropout, hidden_dim)
                     try:
                         # Train for specified epochs
                         trainer.train(
