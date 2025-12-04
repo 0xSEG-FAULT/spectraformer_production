@@ -58,7 +58,7 @@ def tune_hyperparameters(
     
     device = get_device()
     results = {}
-    best_accuracy = 0
+    best_accuracy = -1.0
     best_params = None
     
     # Load processed data (using SA0M as it's usually best)
@@ -73,14 +73,14 @@ def tune_hyperparameters(
     print(f"Loading data from: {processed_path}")
     X, y = load_processed(processed_path)
     
-    # Create dataloaders (using first default batch size for consistency)
-    train_loader, val_loader, test_loader = create_dataloaders(
-        X, y,
-        batch_size=16,  # Will override in each trial
-        train_ratio=train_ratio,
-        val_ratio=val_ratio,
-        test_ratio=test_ratio,
-    )
+    # # Create dataloaders (using first default batch size for consistency)
+    # train_loader, val_loader, test_loader = create_dataloaders(
+    #     X, y,
+    #     batch_size=16,  # Will override in each trial
+    #     train_ratio=train_ratio,
+    #     val_ratio=val_ratio,
+    #     test_ratio=test_ratio,
+    # )
     
     # Count total combinations
     total_combinations = (
@@ -143,7 +143,7 @@ def tune_hyperparameters(
                         print(f"  → Test Accuracy: {test_accuracy:.4f}")
                         
                         # Track best
-                        if test_accuracy > best_accuracy:
+                        if test_accuracy >= best_accuracy:
                             best_accuracy = test_accuracy
                             best_params = {
                                 'learning_rate': float(lr),
