@@ -114,6 +114,8 @@ def tune_hyperparameters(
                     config.hidden_dim = hidden_dim
                     config.epochs = epochs_per_trial
                     config.device = device
+                    config.input_dim = X.shape[1]           # ADD THIS LINE
+                    config.num_classes = len(np.unique(y))  # ADD THIS LINE
 
                     # Create model and trainer
                     model = SpectraFormer(config)
