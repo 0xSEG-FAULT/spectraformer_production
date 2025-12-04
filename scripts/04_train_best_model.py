@@ -19,6 +19,7 @@ import sys
 import json
 import argparse
 import torch
+import numpy as np
 
 # Add src to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
@@ -83,24 +84,39 @@ def train_best_model(
     )
     
     # Create config with best parameters
+    # Create config with best parameters
     config = SpectraFormerConfig()
     config.learning_rate = best_params['learning_rate']
-    config.batch_size = best_params['batch_size']
-    config.dropout = best_params['dropout']
-    config.hidden_dim = best_params['hidden_dim']
-    config.epochs = 200  # Full training
-    
+    config.batch_size    = best_params['batch_size']
+    config.dropout       = best_params['dropout']
+    config.hidden_dim    = best_params['hidden_dim']
+    config.epochs        = 200  # Full training
+
     device = get_device()
     config.device = device
-    
-    print(f"\nModel Configuration:")
-    print(config)
-    
+
+     # Set from data to match shapes and labels
+    config.input_dim   = X.shape[1]                # e.g., 331
+    config.num_classes = len(np.unique(y))         # e.g., 1200
+
+    print("\nModel Configuration:")
+    print(f"\nSpectraFormer Config:")
+    print(f"  Input Dim: {config.input_dim}")
+    print(f"  Num Classes: {config.num_classes}")
+    print(f"  Hidden Dim: {config.hidden_dim}")
+    print(f"  Num Layers: {config.num_layers}")
+    print(f"  Num Heads: {config.num_heads}")
+    print(f"  Learning Rate: {config.learning_rate}")
+    print(f"  Batch Size: {config.batch_size}")
+    print(f"  Epochs: {config.epochs}")
+    print(f"  Dropout: {config.dropout}")
+
     # Create and train model
-    model = SpectraFormer(config)
+    model = SpectraFormer(config).to(device)
     print(f"Model created with {model.count_parameters():,} parameters")
-    
+
     trainer = Trainer(model, config, device=device)
+
     
     # Create checkpoint directory
     checkpoint_dir = os.path.join(model_dir, dataset_name)
