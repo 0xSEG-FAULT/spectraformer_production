@@ -48,25 +48,16 @@ class TransformerEncoderLayer(nn.Module):
         self.activation = nn.ReLU()
     
     def forward(self, src):
-        """
-        src: (seq_len, batch, d_model) or (batch, seq_len, d_model)
-        """
-        # Handle batch-first input
-        if src.dim() == 3 and src.size(0) < src.size(1):
-            # Likely batch-first, transpose to seq-first
-            src = src.transpose(0, 1)
-        
-        # Self-attention
+    # Expect src as (seq_len, batch, d_model) (seq-first)
         src2, _ = self.self_attn(src, src, src)
         src = src + self.dropout1(src2)
         src = self.norm1(src)
-        
-        # Feedforward
+
         src2 = self.linear2(self.dropout(self.activation(self.linear1(src))))
         src = src + self.dropout2(src2)
         src = self.norm2(src)
-        
         return src
+
 
 
 class SpectraFormer(nn.Module):
