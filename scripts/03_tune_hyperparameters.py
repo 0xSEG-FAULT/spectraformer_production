@@ -159,8 +159,11 @@ def tune_hyperparameters(
                             print(f"  ✓ NEW BEST! Accuracy: {best_accuracy:.4f}")
 
                     except Exception as e:
-                        print(f"  ✗ Error: {e}")
+                        import traceback
+                        print(f"  ✗ Error in trial {trial}:")
+                        traceback.print_exc()
                         continue
+
 
     # Save all trial results
     os.makedirs(output_dir, exist_ok=True)
